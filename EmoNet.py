@@ -3,19 +3,21 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.models import Input
 from keras.models import Model
+from keras import optimizers
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense,concatenate
 from keras import backend as K
 from keras.layers import BatchNormalization
 from PIL import ImageFile
+import matplotlib.pyplot as plt
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-img_width, img_height = 224,224
+img_width, img_height = 300,300
 
 if K.image_data_format() == 'channels_first':
     input_shape = (3, img_width, img_height)
 else:
     input_shape = (img_width, img_height, 3)
-nos_classes=11
+nos_classes=10
 dropout_keep_prob=0.5
 # network=Input(shape=[None,img_width,img_height,1])
 padding='VALID'
@@ -25,6 +27,7 @@ padding='VALID'
 # convolution_initial.add(MaxPooling2D(pool_size=(3,3)))
 # convolution_initial.add(BatchNormalization(axis=-1))
 network=Input(shape=input_shape)
+# network=Sequential()
 conv_1=Conv2D(64,(7,7),padding=padding,strides=2,use_bias=True)(network)
 relu_1=Activation('relu')(conv_1)
 max_pool_1=MaxPooling2D(pool_size=(3,3),strides=2,padding=padding)(relu_1)
@@ -56,30 +59,28 @@ dense_layer=Dense(nos_classes)(dropout_layer)
 dense_layer=Activation('softmax')(dense_layer)
 model = Model(inputs=network, outputs=dense_layer)
 print(model.summary())
-model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-
-
-#Data ingestion
 epochs = 500
+learning_rate = 0.1
+decay_rate = learning_rate / epochs
+momentum = 0.8
+sgd = optimizers.SGD(lr=learning_rate, momentum=momentum, decay=decay_rate, nesterov=False)
+model.compile(loss='binary_crossentropy',optimizer='sgd',metrics=['accuracy'])
+model_config=model.to_json()
+with open("model.json",'a') as fileOut:
+	fileOut.write(model_config)
+#Data ingestion
 batch_size = 50
 train_data_dir = 'Data/TRAIN'
 validation_data_dir = 'Data/validation'
 train_datagen = ImageDataGenerator(rescale=1. / 255,shear_range=0.2,zoom_range=0.2,horizontal_flip=True)
+# train_datagen = ImageDataGenerator(rescale=1. / 255)
 test_datagen = ImageDataGenerator(rescale=1. / 255)
 train_generator = train_datagen.flow_from_directory(train_data_dir,target_size=(img_width, img_height),batch_size=batch_size,class_mode='categorical')
 validation_generator = test_datagen.flow_from_directory(validation_data_dir,target_size=(img_width, img_height),batch_size=batch_size,class_mode='categorical')
   #  validation_steps=nb_validation_samples // batch_size)
 # history=model.fit_generator(train_generator,steps_per_epoch=10,epochs=epochs,validation_data=validation_generator,validation_steps=10)
 history=model.fit_generator(train_generator,steps_per_epoch=10,epochs=epochs)
-score = model.evaluate_generator(validation_generator,100)
-# with open('output.txt','a') as fileOut:
-# 	for item in score:
-# 		fileOut.write(item)
-# 		fileOut.write('\n')
-# print(type(score))
-# with open('output.txt','w') as fileOut:
-# 	fileOut.write(score[1])
+score = model.evaluate_generator(validation_generator,50)
+model.save("Classifier_10.h5")
 
-
-model.save("Classifier_500.h5")
 

@@ -51,6 +51,7 @@ conv_3_a=Activation('relu')(conv_3_a)
 conv_3_b=Conv2D(64,(1,1),strides=1,padding=padding)(max_pool_3)
 conv_3_b=Activation('relu')(conv_3_b)
 feat_ex_2_out=concatenate([conv_3_a,conv_3_b],axis=3)
+feat_ex_2_out=MaxPooling2D(pool_size=(3,3),strides=2,padding=padding)(feat_ex_2_out)
 
 #flatten layer
 flaten_layer=Flatten()(feat_ex_2_out)
@@ -59,11 +60,12 @@ dense_layer=Dense(nos_classes)(dropout_layer)
 dense_layer=Activation('softmax')(dense_layer)
 model = Model(inputs=network, outputs=dense_layer)
 print(model.summary())
-epochs = 500
+epochs = 10
 learning_rate = 0.1
 decay_rate = learning_rate / epochs
-momentum = 0.8
-sgd = optimizers.SGD(lr=learning_rate, momentum=momentum, decay=decay_rate, nesterov=False)
+momentum = 0.5
+# sgd = optimizers.SGD(lr=learning_rate, momentum=momentum, decay=decay_rate, nesterov=False)
+sgd=optimizers.Adagrad(lr=learning_rate,decay=decay_rate)
 model.compile(loss='binary_crossentropy',optimizer='sgd',metrics=['accuracy'])
 model_config=model.to_json()
 with open("model.json",'a') as fileOut:

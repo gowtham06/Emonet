@@ -1,0 +1,8 @@
+module load anaconda2
+conda create -y -n vision tensorflow-CPU=1.1.0
+
+qsub -I -q gpu
+
+aprun ./classifier.py -gpu 0
+
+conda create -y -n knowledge_graph tensorflow-CPU=1.1.0
